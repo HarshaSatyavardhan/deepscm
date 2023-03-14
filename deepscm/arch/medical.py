@@ -2,9 +2,12 @@ from torch import nn
 
 import numpy as np
 
+image_channels= 3
+# note cur_channels= 1 for gray image
+
 
 class Encoder(nn.Module):
-    def __init__(self, num_convolutions=1, filters=(16, 32, 64, 128), latent_dim: int = 128, input_size=(1, 192, 192)):
+    def __init__(self, num_convolutions=1, filters=(16, 24, 32, 64, 128), latent_dim: int = 128, input_size=(image_channels, 128, 128)):
         super().__init__()
 
         self.num_convolutions = num_convolutions
@@ -13,7 +16,8 @@ class Encoder(nn.Module):
 
         layers = []
 
-        cur_channels = 1
+        cur_channels = image_channels
+
         for c in filters:
             for _ in range(0, num_convolutions - 1):
                 layers += [nn.Conv2d(cur_channels, c, 3, 1, 1), nn.BatchNorm2d(c), nn.LeakyReLU(.1, inplace=True)]
@@ -26,6 +30,7 @@ class Encoder(nn.Module):
         self.cnn = nn.Sequential(*layers)
 
         self.intermediate_shape = np.array(input_size) // (2 ** len(filters))
+
         self.intermediate_shape[0] = cur_channels
 
         self.fc = nn.Sequential(
@@ -35,20 +40,20 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x):
-        x = self.cnn(x).view(-1, np.prod(self.intermediate_shape))
 
+        x = self.cnn(x).view(-1, np.prod(self.intermediate_shape))
         return self.fc(x)
 
 
 class Decoder(nn.Module):
-    def __init__(self, num_convolutions=1, filters=(128, 64, 32, 16), latent_dim: int = 128, output_size=(1, 192, 192), upconv=False):
+    def __init__(self, num_convolutions=1, filters=(128, 64, 32, 24, 16), latent_dim: int = 128, output_size=(image_channels, 128, 128), upconv=False):
         super().__init__()
 
         self.num_convolutions = num_convolutions
         self.filters = filters
         self.latent_dim = latent_dim
 
-        self.intermediate_shape = np.array(output_size) // (2 ** (len(filters) - 1))
+        self.intermediate_shape = np.array(output_size) // (2 ** (len(filters)-1))
         self.intermediate_shape[0] = filters[0]
 
         self.fc = nn.Sequential(
@@ -75,11 +80,19 @@ class Decoder(nn.Module):
 
             cur_channels = c
 
-        layers += [nn.Conv2d(cur_channels, 1, 1, 1)]
+        # layers += [nn.Conv2d(cur_channels, image_channels, 1, 1)]
+        # change the the output from [batch, 16, 128, 128] to [batch, image_channels, 128, 128]
+        # so the conditional affinetransformation is decoder = Conv2dIndepNormal(decoder, image_channels, image_channels)
+        # or comment this, then conditional affinetransformation is decoder = Conv2dIndepNormal(decoder, 16, image_channels)
+        # we comment this as we think this is channel reduction makes no sense and can lose information.
+
 
         self.cnn = nn.Sequential(*layers)
 
     def forward(self, x):
         x = self.fc(x).view(-1, *self.intermediate_shape)
 
+
         return self.cnn(x)
+
+

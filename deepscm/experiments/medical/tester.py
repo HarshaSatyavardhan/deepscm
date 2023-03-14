@@ -1,8 +1,9 @@
-from . import ukbb  # noqa: F401
+from . import fundus  # noqa: F401
 from .base_experiment import EXPERIMENT_REGISTRY, MODEL_REGISTRY
 
 import torch
 import inspect
+from collections import OrderedDict
 
 
 if __name__ == '__main__':
@@ -22,7 +23,7 @@ if __name__ == '__main__':
 
     print(f'using checkpoint {checkpoint_path}')
 
-    hparams = torch.load(checkpoint_path, map_location=torch.device('cpu'))['hparams']
+    hparams = torch.load(checkpoint_path, map_location=torch.device('cpu'))['hyper_parameters']
 
     print(f'found hparams: {hparams}')
 
@@ -62,11 +63,29 @@ if __name__ == '__main__':
                                              or k in k in inspect.signature(model_class.__bases__[0].__bases__[0].__init__).parameters)
     }
 
+    #patch
+    class AttrDict(dict):
+        def __init__(self, *args, **kwargs):
+            super(AttrDict, self).__init__(*args, **kwargs)
+            self.__dict__ = self
+
+    checkpoint = torch.load(checkpoint_path)
+    hparams_patch = AttrDict(checkpoint['hyper_parameters'])
+
+    new_state_dict = OrderedDict()
+    for key, value in checkpoint['state_dict'].items():
+        new_key = key.replace('pyro_model.', '')
+        new_state_dict[new_key] = value
+
+    loaded_model = model_class(**model_params)
+    loaded_model.load_state_dict(new_state_dict)
+    loaded_model.eval()
+
     print(f'building model with params: {model_params}')
 
     model = model_class(**model_params)
 
-    experiment = exp_class.load_from_checkpoint(checkpoint_path, pyro_model=model)
+    experiment = exp_class(hparams_patch, pyro_model=loaded_model)
 
     print(f'Loaded {experiment.__class__}:\n{experiment}')
 

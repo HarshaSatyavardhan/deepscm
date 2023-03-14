@@ -7,6 +7,7 @@ from .multivariate import MultivariateDistribution
 from .natural_mvn import NaturalMultivariateNormal
 from .products import product
 from deepscm.util import posdef_solve
+# from ...deepscm.util import posdef_solve
 
 T = TypeVar('T', bound=TorchDistribution)
 

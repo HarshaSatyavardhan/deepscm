@@ -11,6 +11,7 @@ from .factorised import Factorised
 from .multivariate import MultivariateDistribution
 from .natural_mvn import NaturalMultivariateNormal
 from deepscm.util import posdef_solve
+# from ...deepscm.util import posdef_solve
 
 _PROD_REGISTRY = {}
 

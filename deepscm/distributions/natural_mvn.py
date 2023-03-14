@@ -8,6 +8,7 @@ from torch.distributions.utils import lazy_property
 from .multivariate import MultivariateDistribution
 from .mvn import MultivariateNormal
 from deepscm.util import inverse_cholesky, mahalanobis, matvec, triangular_logdet
+# from ...deepscm.util import inverse_cholesky, mahalanobis, matvec, triangular_logdet
 
 _LOG_2PI = math.log(2. * math.pi)
 

@@ -1,4 +1,4 @@
-from . import ukbb  # noqa: F401
+from . import fundus  # noqa: F401
 from .base_experiment import EXPERIMENT_REGISTRY, MODEL_REGISTRY
 
 if __name__ == '__main__':
@@ -24,6 +24,7 @@ if __name__ == '__main__':
 
     parser._action_groups[1].title = 'lightning_options'
 
+
     experiment_group = parser.add_argument_group('experiment')
     exp_class.add_arguments(experiment_group)
 
@@ -42,7 +43,9 @@ if __name__ == '__main__':
 
     groups = {}
     for group in parser._action_groups:
+
         group_dict = {a.dest: getattr(args, a.dest, None) for a in group._group_actions}
+
         groups[group.title] = argparse.Namespace(**group_dict)
 
     lightning_args = groups['lightning_options']
@@ -64,4 +67,7 @@ if __name__ == '__main__':
     if not args.validate:
         warnings.filterwarnings('ignore', message='.*was not registered in the param store because.*', module=r'pyro\.primitives')
 
+
     trainer.fit(experiment)
+
+    print("done")
